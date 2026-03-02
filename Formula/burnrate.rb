@@ -4,7 +4,7 @@ class Burnrate < Formula
   desc "Local-only credit card spend analytics"
   homepage "https://github.com/pratik1235/burnrate"
   url "https://github.com/pratik1235/burnrate/archive/v1.0.0.tar.gz"
-  sha256 "0ef5c137d98e47f4ccc089d63360bf226182655f9499272c567f0e841a8f59a3"
+  sha256 "66fd3aa81bea44da82d292d6ed61706ff97a23c0f8563f3687172b7825f98ac6"
   license "MIT"
 
   depends_on "python@3.13"
