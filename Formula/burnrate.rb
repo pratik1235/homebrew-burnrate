@@ -11,8 +11,6 @@ class Burnrate < Formula
   depends_on "python@3.13"
   depends_on "qpdf"
 
-  # Prevent Homebrew from relinking native extensions inside the venv
-  # (cryptography's Rust-compiled .so fails dylib ID patching)
   skip_clean "libexec"
 
   def install
