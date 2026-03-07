@@ -4,7 +4,7 @@ class Burnrate < Formula
   desc "Local-only credit card spend analytics"
   homepage "https://github.com/pratik1235/burnrate"
   url "https://github.com/pratik1235/burnrate/archive/v0.2.1.tar.gz"
-  sha256 "fe444909dcf12097310066a6a45bfae3c4ae9e94ce411d9216b8cc8ce1d3f18c"
+  sha256 "a0061b34a7f4677d02f99f9efee3b629c225d7893c36ab31bb4ac9ed28177a4b"
   license "Apache-2.0"
 
   depends_on "node" => :build
