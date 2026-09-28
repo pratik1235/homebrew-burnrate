@@ -4,12 +4,13 @@ class Burnrate < Formula
   desc "Local-only credit card spend analytics"
   homepage "https://github.com/pratik1235/burnrate"
   # ci updates this version on the homebrew repo.
-  url "https://github.com/pratik1235/burnrate/archive/v0.4.3.tar.gz"
-  sha256 "c9e8faa0f49559cbe2fc26d83bfd04df6c1b7556b59d7e8e149c5d58cf1067bc"
+  url "https://github.com/pratik1235/burnrate/archive/v0.4.4.tar.gz"
+  sha256 "286a12a1ceb3b28a5dd83010820e573bf711d4a248e6a0ceebccf22866f7b910"
   license "Apache-2.0"
 
   depends_on "expat"
   depends_on "node" => :build
+  depends_on "pkg-config" => :build
   depends_on "python@3.13"
   depends_on "qpdf"
 
@@ -28,6 +29,7 @@ class Burnrate < Formula
     system "python3.13", "-m", "pip",
            "--python=#{libexec}/bin/python",
            "install", "--no-cache-dir",
+           "--no-binary=pikepdf",
            "-r", buildpath/"requirements.txt"
 
     cd "frontend-neopop" do
