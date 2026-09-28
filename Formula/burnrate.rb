@@ -4,8 +4,8 @@ class Burnrate < Formula
   desc "Local-only credit card spend analytics"
   homepage "https://github.com/pratik1235/burnrate"
   # ci updates this version on the homebrew repo.
-  url "https://github.com/pratik1235/burnrate/archive/v0.4.2.tar.gz"
-  sha256 "5408d1dc7e6386a8af0e464951a972592d5f783de30a344b3736300ea604d7cb"
+  url "https://github.com/pratik1235/burnrate/archive/v0.4.3.tar.gz"
+  sha256 "c9e8faa0f49559cbe2fc26d83bfd04df6c1b7556b59d7e8e149c5d58cf1067bc"
   license "Apache-2.0"
 
   depends_on "expat"
