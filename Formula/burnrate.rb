@@ -4,8 +4,8 @@ class Burnrate < Formula
   desc "Local-only credit card spend analytics"
   homepage "https://github.com/pratik1235/burnrate"
   # ci updates this version on the homebrew repo.
-  url "https://github.com/pratik1235/burnrate/archive/v0.4.4.tar.gz"
-  sha256 "286a12a1ceb3b28a5dd83010820e573bf711d4a248e6a0ceebccf22866f7b910"
+  url "https://github.com/pratik1235/burnrate/archive/v0.4.5.tar.gz"
+  sha256 "adde11d196ece31f955df7d9e43a8479fbdba4fd0d62414095934f5f04c7d5d3"
   license "Apache-2.0"
 
   depends_on "expat"
@@ -13,6 +13,16 @@ class Burnrate < Formula
   depends_on "pkg-config" => :build
   depends_on "python@3.13"
   depends_on "qpdf"
+
+  # cryptography, pydantic (which bundles pydantic-core + jiter) are declared as
+  # Homebrew formula dependencies so Homebrew installs them with bottles that were
+  # compiled with -headerpad_max_install_names. This avoids MachO::HeaderPadError
+  # during the fix_dynamic_linkage step that occurs when the pre-built wheel's
+  # @rpath dylib ID lacks enough header padding to be rewritten to the full
+  # absolute install path. :no_linkage stops Homebrew from symlinking them into
+  # /opt/homebrew/lib, keeping them isolated inside their own keg.
+  depends_on "cryptography" => :no_linkage
+  depends_on "pydantic" => :no_linkage
 
   skip_clean "libexec"
 
@@ -26,11 +36,35 @@ class Burnrate < Formula
     # LIBRARY_PATH overrides the hardcoded absolute path in the .so.
     ENV.prepend_path "DYLD_LIBRARY_PATH", Formula["expat"].opt_lib
 
-    system "python3.13", "-m", "pip",
-           "--python=#{libexec}/bin/python",
+    # Write a filtered requirements file that excludes packages provided by
+    # Homebrew formulae (cryptography, pydantic + its pydantic-core/jiter deps).
+    # Those Rust-compiled wheels ship @rpath dylib IDs with Mach-O headers too
+    # small for Homebrew's relocation to rewrite to the full install path
+    # (MachO::HeaderPadError). Their Homebrew bottles are compiled with
+    # -headerpad_max_install_names, so they relocate correctly on their own.
+    # --no-binary=pikepdf compiles pikepdf against Homebrew's qpdf so the
+    # bundled .dylibs in the pre-built wheel don't get invalid page-hash
+    # signatures (which caused SIGKILL Code Signature Invalid).
+    filtered_reqs = buildpath/"requirements-filtered.txt"
+    excluded = %w[cryptography pydantic pydantic-core pydantic_core jiter]
+    filtered_reqs.write (buildpath/"requirements.txt").readlines.reject { |l|
+      excluded.any? { |pkg| l.strip.downcase.start_with?(pkg) }
+    }.join
+
+    system libexec/"bin/python", "-m", "pip",
            "install", "--no-cache-dir",
            "--no-binary=pikepdf",
-           "-r", buildpath/"requirements.txt"
+           "-r", filtered_reqs
+
+    # Inject the Homebrew-managed packages into the venv via .pth files so
+    # Python can import them from their Homebrew keg without pip re-installing
+    # them. The packages live at opt_prefix/lib/python3.13/site-packages (not
+    # inside libexec) because they are regular formula installs, not virtualenvs.
+    site_packages = libexec/"lib/python3.13/site-packages"
+    %w[cryptography pydantic].each do |pkg|
+      homebrew_sp = Formula[pkg].opt_prefix/"lib/python3.13/site-packages"
+      (site_packages/"homebrew-#{pkg}.pth").write homebrew_sp.to_s
+    end
 
     cd "frontend-neopop" do
       system "npm", "ci"
@@ -94,4 +128,5 @@ class Burnrate < Formula
     output = shell_output("curl -s http://127.0.0.1:#{port}/api/settings")
     assert_match "setup_complete", output
   end
+
 end
