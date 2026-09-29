@@ -4,8 +4,8 @@ class Burnrate < Formula
   desc "Local-only credit card spend analytics"
   homepage "https://github.com/pratik1235/burnrate"
   # ci updates this version on the homebrew repo.
-  url "https://github.com/pratik1235/burnrate/archive/v0.4.5.tar.gz"
-  sha256 "adde11d196ece31f955df7d9e43a8479fbdba4fd0d62414095934f5f04c7d5d3"
+  url "https://github.com/pratik1235/burnrate/archive/v0.4.6.tar.gz"
+  sha256 "c42c06d1b012ccb49cc9427803482682dc3c3c3c6be1f981b09e2f9903714cb3"
   license "Apache-2.0"
 
   depends_on "expat"
@@ -66,6 +66,21 @@ class Burnrate < Formula
       (site_packages/"homebrew-#{pkg}.pth").write homebrew_sp.to_s
     end
 
+    # -------------------------------------------------------------------------
+    # HIDE SITE-PACKAGES FROM HOMEBREW'S LINKAGE SCANNER
+    # -------------------------------------------------------------------------
+    # Homebrew's fix_dynamic_linkage phase scans the Cellar for Mach-O binaries
+    # and rewrites their rpaths. On Apple Silicon, this modification breaks the
+    # original pip-provided adhoc signatures. If a background IDE language server
+    # scans the file while the signature is broken, the macOS AMFI subsystem
+    # permanently caches that path as invalid (SIGKILL), even if we re-sign it later.
+    # Since pip wheels already have valid load commands, we simply tar the
+    # directory so Homebrew ignores it completely, preserving the original signatures.
+    cd libexec/"lib/python3.13" do
+      system "tar", "-cf", "site-packages.tar", "site-packages"
+      rm_rf "site-packages"
+    end
+
     cd "frontend-neopop" do
       system "npm", "ci"
       system "npm", "run", "build"
@@ -91,6 +106,32 @@ class Burnrate < Formula
 
   def post_install
     (var/"burnrate").mkpath
+
+    # ---------------------------------------------------------------
+    # Re-sign every native extension (.so / .dylib) inside the venv.
+    #
+    # Homebrew's fix_dynamic_linkage rewrites @rpath load commands to
+    # absolute Cellar paths *after* the original linker-signed adhoc
+    # code signature was created.  This invalidates the page hashes
+    # embedded in the signature.  On ARM64 macOS with SIP the kernel
+    # validates page hashes on first load and kills the process with
+    # SIGKILL (Code Signature Invalid / Invalid Page) if they don't
+    # match.  The crash typically manifests only on *other* machines
+    # (or after a reboot) because the installing machine still has
+    # the pages cached.
+    #
+    # Signing with `codesign --force --sign -` replaces the stale
+    # linker-signed signature with a fresh adhoc signature that has
+    # correct page hashes for the modified binary.
+    # ---------------------------------------------------------------
+    # Restore the site-packages directory that we hid during the install phase.
+    # The files emerge with their original, perfectly valid pip adhoc signatures.
+    cd libexec/"lib/python3.13" do
+      if File.exist?("site-packages.tar")
+        system "tar", "-xf", "site-packages.tar"
+        rm "site-packages.tar"
+      end
+    end
   end
 
   service do
