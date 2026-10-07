@@ -4,8 +4,8 @@ class Burnrate < Formula
   desc "Local-only credit card spend analytics"
   homepage "https://github.com/pratik1235/burnrate"
   # ci updates this version on the homebrew repo.
-  url "https://github.com/pratik1235/burnrate/archive/v0.4.6.tar.gz"
-  sha256 "c42c06d1b012ccb49cc9427803482682dc3c3c3c6be1f981b09e2f9903714cb3"
+  url "https://github.com/pratik1235/burnrate/archive/v0.5.0.tar.gz"
+  sha256 "7aac8350ead742230f2571115c169254865cb9e6e578d7ad639c90ae970cab4a"
   license "Apache-2.0"
 
   depends_on "expat"
@@ -98,6 +98,7 @@ class Burnrate < Formula
       export BURNRATE_DATA_DIR="#{var}/burnrate"
       export BURNRATE_STATIC_DIR="#{libexec}/frontend-neopop/dist"
       export BURNRATE_HOMEBREW="true"
+      export BURNRATE_ENV="production"
       export PYTHONPATH="#{libexec}:$PYTHONPATH"
       export DYLD_LIBRARY_PATH="#{Formula["expat"].opt_lib}:$DYLD_LIBRARY_PATH"
       exec "#{libexec}/bin/python" -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 "$@"
