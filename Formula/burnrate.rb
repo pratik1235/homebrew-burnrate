@@ -4,8 +4,8 @@ class Burnrate < Formula
   desc "Local-only credit card spend analytics"
   homepage "https://github.com/pratik1235/burnrate"
   # ci updates this version on the homebrew repo.
-  url "https://github.com/pratik1235/burnrate/archive/v0.5.1.tar.gz"
-  sha256 "5b9fc2b1288af22e11c057bca72e1395870adddb998ca33a8d0efeb848f48f9c"
+  url "https://github.com/pratik1235/burnrate/archive/v0.5.2.tar.gz"
+  sha256 "186f47a91e1d1c8f77b9e818d669e2723a91b0ab7fa352cd9cc76dc9750b556e"
   license "Apache-2.0"
 
   depends_on "expat"
@@ -48,23 +48,24 @@ class Burnrate < Formula
     filtered_reqs = buildpath/"requirements-filtered.txt"
     excluded = %w[cryptography pydantic pydantic-core pydantic_core jiter]
     filtered_reqs.write (buildpath/"requirements.txt").readlines.reject { |l|
-      excluded.any? { |pkg| l.strip.downcase.start_with?(pkg) }
+      excluded.any? { |pkg| l.strip.downcase.match?(/^#{pkg}(?:[=><~]|$)/) }
     }.join
+
+    # Inject the Homebrew-managed packages into the venv via .pth files so
+    # Python can import them from their Homebrew keg without pip re-installing
+    # them. We do this BEFORE pip install so pip sees they are already satisfied
+    # and doesn't try to download their Rust-compiled wheels.
+    site_packages = libexec/"lib/python3.13/site-packages"
+    site_packages.mkpath
+    %w[cryptography pydantic].each do |pkg|
+      homebrew_sp = Formula[pkg].opt_prefix/"lib/python3.13/site-packages"
+      (site_packages/"homebrew-#{pkg}.pth").write homebrew_sp.to_s
+    end
 
     system libexec/"bin/python", "-m", "pip",
            "install", "--no-cache-dir",
            "--no-binary=pikepdf",
            "-r", filtered_reqs
-
-    # Inject the Homebrew-managed packages into the venv via .pth files so
-    # Python can import them from their Homebrew keg without pip re-installing
-    # them. The packages live at opt_prefix/lib/python3.13/site-packages (not
-    # inside libexec) because they are regular formula installs, not virtualenvs.
-    site_packages = libexec/"lib/python3.13/site-packages"
-    %w[cryptography pydantic].each do |pkg|
-      homebrew_sp = Formula[pkg].opt_prefix/"lib/python3.13/site-packages"
-      (site_packages/"homebrew-#{pkg}.pth").write homebrew_sp.to_s
-    end
 
     # -------------------------------------------------------------------------
     # HIDE SITE-PACKAGES FROM HOMEBREW'S LINKAGE SCANNER
